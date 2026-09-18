@@ -38,11 +38,21 @@ export function ChallengeLeaderboard({ entries, limit = 10 }: ChallengeLeaderboa
                 <th className="pb-3 pr-4 font-medium">#</th>
                 <th className="pb-3 pr-4 font-medium">Verein</th>
                 <th className="pb-3 pr-4 font-medium">Punkte</th>
-                <th className="pb-3 pr-4 font-medium">Melded.</th>
-                <th className="pb-3 pr-4 font-medium">Gr.</th>
-                <th className="pb-3 pr-4 font-medium">K.O.</th>
-                <th className="pb-3 pr-4 font-medium">3:0</th>
-                <th className="pb-3 font-medium">w.o.</th>
+                <th className="pb-3 pr-4 font-medium" title="+1 Punkt je gemeldeter Mannschaft">
+                  Teams
+                </th>
+                <th className="pb-3 pr-4 font-medium" title="+2 Punkte je Sieg">
+                  Gr.
+                </th>
+                <th className="pb-3 pr-4 font-medium" title="+4 Punkte je Sieg">
+                  K.O.
+                </th>
+                <th className="pb-3 pr-4 font-medium" title="+1 Bonus">
+                  3:0
+                </th>
+                <th className="pb-3 font-medium" title="−1 Malus">
+                  w.o.
+                </th>
               </tr>
             </thead>
             <tbody>

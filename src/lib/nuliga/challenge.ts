@@ -26,13 +26,17 @@ function winnerFromMatch(
   return { winner, loser, isCleanSweep, isWalkover };
 }
 
+function registrationKey(groupId: string, teamId?: string, teamName?: string): string {
+  return `${groupId}:${teamId ?? teamName ?? "unknown"}`;
+}
+
 export function calculateVereinsChallenge(groups: Record<string, GroupData>): ClubChallengeEntry[] {
   const clubMap = new Map<
     string,
-    ClubChallengeEntry & { teamSet: Set<string> }
+    ClubChallengeEntry & { registrationSet: Set<string> }
   >();
 
-  function ensureClub(club: string): ClubChallengeEntry & { teamSet: Set<string> } {
+  function ensureClub(club: string): ClubChallengeEntry & { registrationSet: Set<string> } {
     const existing = clubMap.get(club);
     if (existing) return existing;
 
@@ -47,7 +51,7 @@ export function calculateVereinsChallenge(groups: Record<string, GroupData>): Cl
         walkoverMalus: 0,
       },
       teams: [] as string[],
-      teamSet: new Set<string>(),
+      registrationSet: new Set<string>(),
     };
     clubMap.set(club, created);
     return created;
@@ -56,8 +60,10 @@ export function calculateVereinsChallenge(groups: Record<string, GroupData>): Cl
   for (const group of Object.values(groups)) {
     for (const standing of group.standings) {
       const entry = ensureClub(standing.team);
-      if (!entry.teamSet.has(standing.team)) {
-        entry.teamSet.add(standing.team);
+      const key = registrationKey(group.id, standing.teamId, standing.team);
+
+      if (!entry.registrationSet.has(key)) {
+        entry.registrationSet.add(key);
         entry.breakdown.registeredTeams += 1;
         entry.totalPoints += 1;
       }
@@ -98,9 +104,11 @@ export function calculateVereinsChallenge(groups: Record<string, GroupData>): Cl
   }
 
   return Array.from(clubMap.values())
-    .map(({ teamSet, ...entry }) => ({
+    .map(({ registrationSet, ...entry }) => ({
       ...entry,
-      teams: Array.from(teamSet).sort(),
+      teams: Array.from(registrationSet)
+        .map((key) => key.split(":").slice(1).join(":"))
+        .sort(),
     }))
     .sort((a, b) => b.totalPoints - a.totalPoints || a.club.localeCompare(b.club, "de"));
 }

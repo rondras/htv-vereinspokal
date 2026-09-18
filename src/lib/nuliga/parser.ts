@@ -66,6 +66,29 @@ function parseIntSafe(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+interface MatchColumnLayout {
+  home: number;
+  away: number;
+  matchPoints: number;
+  sets: number;
+  games: number;
+  report: number;
+}
+
+function resolveMatchColumnLayout(headers: string[], cellCount: number): MatchColumnLayout {
+  const isKnockoutSchedule = headers.includes("nr.") || cellCount >= 11;
+
+  if (isKnockoutSchedule) {
+    return { home: 5, away: 6, matchPoints: 7, sets: 8, games: 9, report: 10 };
+  }
+
+  return { home: 3, away: 4, matchPoints: 5, sets: 6, games: 7, report: 8 };
+}
+
+function looksLikeTeamName(name: string): boolean {
+  return Boolean(name) && /[A-Za-zÄÖÜäöüß]/.test(name) && !/^(viertel|halb|finale|achtel)/i.test(name);
+}
+
 export function parseGroupPage(html: string, year: number, groupId: string): GroupData {
   const $ = cheerio.load(html);
   const title = decodeEntities($("h1").first().text());
@@ -118,14 +141,19 @@ export function parseGroupPage(html: string, year: number, groupId: string): Gro
           const cells = $(row).find("td");
           if (cells.length < 9) return;
 
+          const layout = resolveMatchColumnLayout(headers, cells.length);
+          if (cells.length <= layout.report) return;
+
           const day = decodeEntities($(cells[0]).text());
           const date = decodeEntities($(cells[1]).text());
-          const home = parseTeamCell($, cells[3]!);
-          const away = parseTeamCell($, cells[4]!);
-          const matchPoints = decodeEntities($(cells[5]).text());
-          const sets = decodeEntities($(cells[6]).text());
-          const games = decodeEntities($(cells[7]).text());
-          const reportLink = $(cells[8]).find("a").attr("href");
+          const home = parseTeamCell($, cells[layout.home]!);
+          const away = parseTeamCell($, cells[layout.away]!);
+          if (!looksLikeTeamName(home.name) || !looksLikeTeamName(away.name)) return;
+
+          const matchPoints = decodeEntities($(cells[layout.matchPoints]).text());
+          const sets = decodeEntities($(cells[layout.sets]).text());
+          const games = decodeEntities($(cells[layout.games]).text());
+          const reportLink = $(cells[layout.report]).find("a").attr("href");
           const rowText = decodeEntities($(row).text());
           const note = /w\.o\./i.test(rowText) ? "Walkover" : undefined;
           const isPlayed = Boolean(matchPoints && matchPoints !== "-" && matchPoints.includes(":"));
