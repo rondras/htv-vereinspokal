@@ -1,14 +1,16 @@
 import Link from "next/link";
 import type { ClubChallengeEntry } from "@/lib/types";
+import { clubToSlug } from "@/lib/slug";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ChallengeLeaderboardProps {
   entries: ClubChallengeEntry[];
+  year: number;
   limit?: number;
 }
 
-export function ChallengeLeaderboard({ entries, limit = 10 }: ChallengeLeaderboardProps) {
+export function ChallengeLeaderboard({ entries, year, limit = 10 }: ChallengeLeaderboardProps) {
   const visible = entries.slice(0, limit);
 
   if (visible.length === 0) {
@@ -59,7 +61,14 @@ export function ChallengeLeaderboard({ entries, limit = 10 }: ChallengeLeaderboa
               {visible.map((entry, index) => (
                 <tr key={entry.club} className="border-b border-zinc-900/80 last:border-0">
                   <td className="py-3 pr-4 text-zinc-500">{index + 1}</td>
-                  <td className="py-3 pr-4 font-medium text-zinc-100">{entry.club}</td>
+                  <td className="py-3 pr-4 font-medium text-zinc-100">
+                    <Link
+                      href={`/verein/${year}/${clubToSlug(entry.club)}`}
+                      className="text-zinc-100 transition-colors duration-150 ease-out hover:text-emerald-400"
+                    >
+                      {entry.club}
+                    </Link>
+                  </td>
                   <td className="py-3 pr-4">
                     <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
                       {entry.totalPoints}

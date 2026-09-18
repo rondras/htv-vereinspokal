@@ -54,7 +54,7 @@ async function Dashboard({ year }: { year: number }) {
         </Card>
       </section>
 
-      <ChallengeLeaderboard entries={season.challenge} limit={15} />
+      <ChallengeLeaderboard entries={season.challenge} year={year} limit={15} />
       <LeagueGrid competitions={season.competitions} year={year} />
     </div>
   );
