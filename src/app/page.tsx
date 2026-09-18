@@ -1,4 +1,5 @@
 import { ChallengeLeaderboard } from "@/components/challenge-leaderboard";
+import { HomeSeasonHeader } from "@/components/home-season-header";
 import { LeagueGrid } from "@/components/league-grid";
 import { SeasonPageFrame } from "@/components/season-page-frame";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,21 +45,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const year = Number.parseInt(params.season ?? String(DEFAULT_SEASON_YEAR), 10);
 
   return (
-    <SeasonPageFrame
-      year={year}
-      renderHeader={(displayYear) => (
-        <div>
-          <p className="text-sm font-medium text-emerald-400">Hessischer Tennis-Verband</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-50 sm:text-4xl">
-            HTV Vereinspokal {displayYear}
-          </h1>
-          <p className="mt-2 max-w-2xl text-zinc-400">
-            Tabellen, Spielpläne und die Vereins-Challenge — synchronisiert von nuLiga,
-            zwischengespeichert für eine Stunde.
-          </p>
-        </div>
-      )}
-    >
+    <SeasonPageFrame year={year} header={<HomeSeasonHeader year={year} />}>
       <DashboardContent year={year} />
     </SeasonPageFrame>
   );
