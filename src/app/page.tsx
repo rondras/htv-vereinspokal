@@ -8,6 +8,8 @@ import { DEFAULT_SEASON_YEAR } from "@/lib/nuliga/constants";
 import { getSeasonData } from "@/lib/nuliga/sync";
 import { formatDate, timeAgo } from "@/lib/utils";
 
+export const maxDuration = 60;
+
 interface HomePageProps {
   searchParams: Promise<{ season?: string }>;
 }

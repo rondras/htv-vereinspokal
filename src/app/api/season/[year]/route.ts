@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSeasonData, isValidSeasonYear } from "@/lib/nuliga/sync";
 
+export const maxDuration = 60;
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ year: string }> },

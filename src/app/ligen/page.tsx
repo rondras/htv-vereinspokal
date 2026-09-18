@@ -6,6 +6,8 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { DEFAULT_SEASON_YEAR } from "@/lib/nuliga/constants";
 import { getSeasonData } from "@/lib/nuliga/sync";
 
+export const maxDuration = 60;
+
 interface LigenPageProps {
   searchParams: Promise<{ season?: string }>;
 }

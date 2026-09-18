@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { DEFAULT_SEASON_YEAR } from "@/lib/nuliga/constants";
 import { isValidSeasonYear, syncSeason } from "@/lib/nuliga/sync";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   let year = DEFAULT_SEASON_YEAR;
 

@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { GroupDetail } from "@/components/group-detail";
 import { getSeasonData, isValidSeasonYear } from "@/lib/nuliga/sync";
 
+export const maxDuration = 60;
+
 interface LigaDetailPageProps {
   params: Promise<{ year: string; groupId: string }>;
 }
