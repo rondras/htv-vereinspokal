@@ -4,17 +4,41 @@ const DEFAULT_HEADERS = {
   "Accept-Language": "de-DE,de;q=0.9",
 };
 
-export async function fetchHtml(url: string): Promise<string> {
-  const response = await fetch(url, {
-    headers: DEFAULT_HEADERS,
-    next: { revalidate: 3600 },
-  });
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+export async function fetchHtml(url: string, retries = 3): Promise<string> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers: DEFAULT_HEADERS,
+        next: { revalidate: 3600 },
+      });
+
+      if (response.ok) {
+        return response.text();
+      }
+
+      const retryable = response.status >= 500 || response.status === 429;
+      if (retryable && attempt < retries - 1) {
+        await sleep(400 * (attempt + 1));
+        continue;
+      }
+
+      throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < retries - 1) {
+        await sleep(400 * (attempt + 1));
+        continue;
+      }
+    }
   }
 
-  return response.text();
+  throw lastError ?? new Error(`Failed to fetch ${url}`);
 }
 
 export async function fetchWithConcurrency<T>(

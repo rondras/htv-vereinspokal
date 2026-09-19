@@ -21,7 +21,7 @@ export default async function VereinPage({ params }: VereinPageProps) {
   const club = slugToClub(clubSlug);
   const [season, challengeHistory] = await Promise.all([
     getSeasonData(year),
-    loadClubChallengeHistory(club, getSeasonData),
+    loadClubChallengeHistory(club),
   ]);
   const pageData = buildClubPageData(season, club, challengeHistory);
 
