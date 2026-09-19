@@ -186,6 +186,23 @@ export function buildClubProfiles(season: SeasonData): ClubProfile[] {
     }
   }
 
+  for (const entry of challenge) {
+    if (!teamsByClub.has(entry.club)) {
+      teamsByClub.set(entry.club, []);
+    }
+  }
+
+  for (const group of Object.values(season.groups)) {
+    for (const match of group.matches) {
+      if (match.homeTeam && !teamsByClub.has(match.homeTeam)) {
+        teamsByClub.set(match.homeTeam, []);
+      }
+      if (match.awayTeam && !teamsByClub.has(match.awayTeam)) {
+        teamsByClub.set(match.awayTeam, []);
+      }
+    }
+  }
+
   return Array.from(teamsByClub.entries())
     .map(([club, teams]) => ({
       club,
