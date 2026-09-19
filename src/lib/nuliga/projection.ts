@@ -1,1 +1,1 @@
-@file:/workspace/src/lib/nuliga/projection.ts
+FULL_CONTENT_FROM_WORKSPACE
