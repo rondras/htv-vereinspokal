@@ -1,4 +1,4 @@
-import type { GroupData, SeasonData } from "@/lib/types";
+import type { GroupData, MatchRow, SeasonData } from "@/lib/types";
 
 export interface ClubTitle {
   year: number;
@@ -15,24 +15,95 @@ function parseScore(score: string): [number, number] | null {
   return [Number.parseInt(match[1]!, 10), Number.parseInt(match[2]!, 10)];
 }
 
-export function findKnockoutChampion(group: GroupData): string | null {
+function isByeTeam(name: string): boolean {
+  return /^spielfrei$/i.test(name);
+}
+
+function isRealTeam(name: string): boolean {
+  return Boolean(name) && !isByeTeam(name);
+}
+
+function recordWin(wins: Set<string>, losses: Set<string>, winner: string, loser: string): void {
+  if (!isRealTeam(winner) || !isRealTeam(loser)) return;
+  wins.add(winner);
+  losses.add(loser);
+}
+
+function recordBye(wins: Set<string>, team: string): void {
+  if (isRealTeam(team)) {
+    wins.add(team);
+  }
+}
+
+function hasUnplayedRealMatches(matches: MatchRow[]): boolean {
+  return matches.some(
+    (match) =>
+      !match.isPlayed &&
+      isRealTeam(match.homeTeam) &&
+      isRealTeam(match.awayTeam) &&
+      !isByeTeam(match.homeTeam) &&
+      !isByeTeam(match.awayTeam),
+  );
+}
+
+function findUndefeatedChampion(matches: MatchRow[]): string | null {
   const losses = new Set<string>();
   const wins = new Set<string>();
 
-  for (const match of group.matches) {
+  for (const match of matches) {
     if (!match.isPlayed) continue;
+
+    if (isByeTeam(match.homeTeam) || isByeTeam(match.awayTeam)) {
+      if (isByeTeam(match.awayTeam)) recordBye(wins, match.homeTeam);
+      if (isByeTeam(match.homeTeam)) recordBye(wins, match.awayTeam);
+      continue;
+    }
 
     const [homeScore, awayScore] = parseScore(match.matchPoints) ?? [];
     if (homeScore === undefined || awayScore === undefined || homeScore === awayScore) continue;
 
     const winner = homeScore > awayScore ? match.homeTeam : match.awayTeam;
     const loser = homeScore > awayScore ? match.awayTeam : match.homeTeam;
-    losses.add(loser);
-    wins.add(winner);
+    recordWin(wins, losses, winner, loser);
   }
 
   const undefeated = [...wins].filter((team) => !losses.has(team));
   return undefeated.length === 1 ? undefeated[0]! : null;
+}
+
+function findFinalRoundWinner(matches: MatchRow[]): string | null {
+  let lastWinner: string | null = null;
+
+  for (const match of matches) {
+    if (!match.isPlayed) continue;
+
+    if (isByeTeam(match.homeTeam) || isByeTeam(match.awayTeam)) {
+      if (isByeTeam(match.awayTeam) && isRealTeam(match.homeTeam)) {
+        lastWinner = match.homeTeam;
+      } else if (isByeTeam(match.homeTeam) && isRealTeam(match.awayTeam)) {
+        lastWinner = match.awayTeam;
+      }
+      continue;
+    }
+
+    const [homeScore, awayScore] = parseScore(match.matchPoints) ?? [];
+    if (homeScore === undefined || awayScore === undefined || homeScore === awayScore) continue;
+
+    lastWinner = homeScore > awayScore ? match.homeTeam : match.awayTeam;
+  }
+
+  return lastWinner;
+}
+
+export function findKnockoutChampion(group: GroupData): string | null {
+  const undefeated = findUndefeatedChampion(group.matches);
+  if (undefeated) return undefeated;
+
+  if (hasUnplayedRealMatches(group.matches)) {
+    return null;
+  }
+
+  return findFinalRoundWinner(group.matches);
 }
 
 function tierFromLkStart(lkStart: number): ClubTitle["tier"] {
@@ -46,14 +117,16 @@ export function parseKnockoutTitleLabel(groupTitle: string): Pick<ClubTitle, "la
     .replace(/^HTV-Pokal \d+\s*/i, "")
     .replace(/\s*-?\s*K\.O\.-Phase\s*$/i, "")
     .replace(/^K\.O\.-Phase:\s*/i, "")
+    .replace(/\s*-?\s*HTV-Pokal Nebenrunde\s*$/i, "")
+    .replace(/\s*-?\s*HTV-Pokal Hauptfeld\s*$/i, "")
     .trim();
 
-  const lkMatch = withoutPrefix.match(/Generali LK ([\d,]+)-([\d,]+)/i);
+  const lkMatch = withoutPrefix.match(/(?:Generali )?LK ([\d,]+)-([\d,]+)/i);
   const lkStart = lkMatch ? Number.parseFloat(lkMatch[1]!.replace(",", ".")) : 10;
   const tier = tierFromLkStart(lkStart);
 
   const category = withoutPrefix
-    .replace(/\s*-?\s*Generali LK .*/i, "")
+    .replace(/\s*-?\s*(?:Generali )?LK .*/i, "")
     .replace(/\s*-\s*$/, "")
     .trim();
 
