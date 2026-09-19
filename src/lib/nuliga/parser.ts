@@ -74,6 +74,7 @@ export function parseLeaguePage(html: string, year: number): CompetitionRow[] {
       return;
     }
 
+    // HTV-Pokal 2023 and earlier seasons use a 2-column layout (Hauptfeld / Nebenrunde).
     if (cells.length === 2) {
       rows.push(parseLegacyLeagueRow(category, $(cells[1]).html() ?? "", year));
     }
@@ -108,14 +109,28 @@ function resolveMatchColumnLayout(headers: string[], cellCount: number): MatchCo
   const isKnockoutSchedule = headers.includes("nr.") || cellCount >= 11;
 
   if (isKnockoutSchedule) {
-    return { home: 5, away: 6, matchPoints: 7, sets: 8, games: 9, report: 10 };
+    // 2024+ includes Spielort between Nr. and teams; 2023 Nebenrunde omits it.
+    if (headers.includes("spielort")) {
+      return { home: 5, away: 6, matchPoints: 7, sets: 8, games: 9, report: 10 };
+    }
+
+    return { home: 4, away: 5, matchPoints: 6, sets: 7, games: 8, report: 9 };
   }
 
   return { home: 3, away: 4, matchPoints: 5, sets: 6, games: 7, report: 8 };
 }
 
 function looksLikeTeamName(name: string): boolean {
-  return Boolean(name) && /[A-Za-zÄÖÜäöüß]/.test(name) && !/^(viertel|halb|finale|achtel)/i.test(name);
+  return (
+    Boolean(name) &&
+    /[A-Za-zÄÖÜäöüß]/.test(name) &&
+    !/^(viertel|halb|finale|achtel)/i.test(name) &&
+    !/^spielfrei$/i.test(name)
+  );
+}
+
+function isByeTeam(name: string): boolean {
+  return /^spielfrei$/i.test(name);
 }
 
 function parseMatchScore(score: string): [number, number] | null {
@@ -237,7 +252,11 @@ export function parseGroupPage(html: string, year: number, groupId: string): Gro
           const date = decodeEntities($(cells[1]).text());
           const home = parseTeamCell($, cells[layout.home]!);
           const away = parseTeamCell($, cells[layout.away]!);
-          if (!looksLikeTeamName(home.name) || !looksLikeTeamName(away.name)) return;
+          const homeIsBye = isByeTeam(home.name);
+          const awayIsBye = isByeTeam(away.name);
+          if (!looksLikeTeamName(home.name) && !homeIsBye) return;
+          if (!looksLikeTeamName(away.name) && !awayIsBye) return;
+          if (homeIsBye && awayIsBye) return;
 
           const matchPoints = decodeEntities($(cells[layout.matchPoints]).text());
           const sets = decodeEntities($(cells[layout.sets]).text());
@@ -245,7 +264,10 @@ export function parseGroupPage(html: string, year: number, groupId: string): Gro
           const reportLink = $(cells[layout.report]).find("a").attr("href");
           const rowText = decodeEntities($(row).text());
           const note = /w\.o\./i.test(rowText) ? "Walkover" : undefined;
-          const isPlayed = Boolean(matchPoints && matchPoints !== "-" && matchPoints.includes(":"));
+          const isPlayed =
+            homeIsBye || awayIsBye
+              ? true
+              : Boolean(matchPoints && matchPoints !== "-" && matchPoints.includes(":"));
 
           matches.push({
             day,
