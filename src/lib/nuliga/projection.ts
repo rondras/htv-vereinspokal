@@ -1,1 +1,1 @@
-@file:/workspace/src/lib/nuliga/projection.ts
+FULL9_FROM_FILE
