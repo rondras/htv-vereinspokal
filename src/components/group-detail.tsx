@@ -48,7 +48,15 @@ export function GroupDetail({ group, year }: GroupDetailProps) {
                   <tr key={row.team} className="border-b border-zinc-900/80 last:border-0">
                     <td className="py-3 pr-3 text-zinc-500">{row.rank}</td>
                     <td className="py-3 pr-3">
-                      <ClubLink club={row.team} year={year} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ClubLink club={row.team} year={year} />
+                        {row.withdrawnAt ? (
+                          <Badge className="border-zinc-600 bg-zinc-900 text-zinc-400">
+                            Zurückgezogen
+                            {row.withdrawnAt !== "unbekannt" ? ` · ${row.withdrawnAt}` : ""}
+                          </Badge>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="py-3 pr-3 text-zinc-400">{row.played}</td>
                     <td className="py-3 pr-3 text-zinc-400">{row.wins}</td>
@@ -97,12 +105,14 @@ export function GroupDetail({ group, year }: GroupDetailProps) {
                       <ClubLink club={match.awayTeam} year={year} />
                     </td>
                     <td className="py-3 pr-3">
-                      {match.isPlayed ? (
+                      {match.note === "Zurückgezogen" ? (
+                        <span className="text-zinc-400">Zurückgezogen</span>
+                      ) : match.isPlayed ? (
                         <span className="font-medium text-emerald-300">{match.matchPoints}</span>
                       ) : (
                         <span className="text-zinc-600">—</span>
                       )}
-                      {match.note ? (
+                      {match.note && match.note !== "Zurückgezogen" ? (
                         <span className="ml-2 text-xs text-amber-400">{match.note}</span>
                       ) : null}
                     </td>

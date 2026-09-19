@@ -91,6 +91,40 @@ function parseTeamCell($: cheerio.CheerioAPI, cell: Parameters<typeof $>[0]): { 
   return { name, id: teamMatch?.[1] };
 }
 
+function parseWithdrawnAt(cellText: string): string | undefined {
+  const withdrawnMatch = cellText.match(/zurückgezogen\/gesperrt\s+am\s+'([^']+)'/i);
+  if (withdrawnMatch?.[1]) {
+    return withdrawnMatch[1];
+  }
+
+  if (/zurückgezogen|gesperrt/i.test(cellText)) {
+    return "unbekannt";
+  }
+
+  return undefined;
+}
+
+function parseStandingTeamCell(
+  $: cheerio.CheerioAPI,
+  cell: Parameters<typeof $>[0],
+): { name: string; id?: string; withdrawnAt?: string } {
+  const team = parseTeamCell($, cell);
+  const withdrawnAt = parseWithdrawnAt(decodeEntities($(cell).text()));
+  return { ...team, withdrawnAt };
+}
+
+function parseMatchNote(rowText: string, reportText: string): string | undefined {
+  if (/w\.o\./i.test(rowText)) {
+    return "Walkover";
+  }
+
+  if (/zurückgezogen/i.test(reportText) || (/zurückgezogen/i.test(rowText) && !/\d+\s*:\s*\d+/.test(rowText))) {
+    return "Zurückgezogen";
+  }
+
+  return undefined;
+}
+
 function parseIntSafe(value: string): number {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -218,7 +252,7 @@ export function parseGroupPage(html: string, year: number, groupId: string): Gro
           const cells = $(row).find("td");
           if (cells.length < 10) return;
 
-          const team = parseTeamCell($, cells[2]!);
+          const team = parseStandingTeamCell($, cells[2]!);
           if (!team.name) return;
 
           standings.push({
@@ -233,6 +267,7 @@ export function parseGroupPage(html: string, year: number, groupId: string): Gro
             matchPoints: decodeEntities($(cells[8]).text()),
             sets: decodeEntities($(cells[9]).text()),
             games: decodeEntities($(cells[10]).text()),
+            withdrawnAt: team.withdrawnAt,
           });
         });
     }
@@ -261,11 +296,14 @@ export function parseGroupPage(html: string, year: number, groupId: string): Gro
           const matchPoints = decodeEntities($(cells[layout.matchPoints]).text());
           const sets = decodeEntities($(cells[layout.sets]).text());
           const games = decodeEntities($(cells[layout.games]).text());
-          const reportLink = $(cells[layout.report]).find("a").attr("href");
+          const reportCell = cells[layout.report]!;
+          const reportLink = $(reportCell).find("a").attr("href");
+          const reportText = decodeEntities($(reportCell).text());
           const rowText = decodeEntities($(row).text());
-          const note = /w\.o\./i.test(rowText) ? "Walkover" : undefined;
+          const note = parseMatchNote(rowText, reportText);
+          const isWithdrawn = note === "Zurückgezogen";
           const isPlayed =
-            homeIsBye || awayIsBye
+            homeIsBye || awayIsBye || isWithdrawn
               ? true
               : Boolean(matchPoints && matchPoints !== "-" && matchPoints.includes(":"));
 

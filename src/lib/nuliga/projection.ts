@@ -7,6 +7,13 @@ import type {
   SeasonProjection,
 } from "@/lib/types";
 import { calculateVereinsChallenge } from "@/lib/nuliga/challenge";
+import {
+  buildKnockoutStartedKeys,
+  buildWithdrawnTeamKeysByGroup,
+  isWithdrawnMatch,
+  matchInvolvesWithdrawnTeam,
+  normalizeCompetitionKey,
+} from "@/lib/nuliga/competition";
 
 export type { ClubChallengeProjection, SeasonProjection };
 
@@ -34,13 +41,42 @@ function isRealMatch(match: MatchRow): boolean {
   );
 }
 
+function isSameTeamMatch(match: MatchRow): boolean {
+  return match.homeTeam.trim().toLowerCase() === match.awayTeam.trim().toLowerCase();
+}
+
+function isActionableUnplayedMatch(
+  match: MatchRow,
+  group: GroupData,
+  knockoutStartedKeys: Set<string>,
+  withdrawnByGroup: Map<string, Set<string>>,
+): boolean {
+  if (match.isPlayed || !isRealMatch(match) || isSameTeamMatch(match)) {
+    return false;
+  }
+
+  if (isWithdrawnMatch(match) || matchInvolvesWithdrawnTeam(match, group, withdrawnByGroup)) {
+    return false;
+  }
+
+  if (!group.isKnockout && knockoutStartedKeys.has(normalizeCompetitionKey(group.title))) {
+    return false;
+  }
+
+  return true;
+}
+
 function maxPointsForUnplayedMatch(group: GroupData): number {
   return group.isKnockout
     ? CHALLENGE_POINT_VALUES.maxPerKnockoutMatch
     : CHALLENGE_POINT_VALUES.maxPerGroupMatch;
 }
 
-function collectRemainingUpside(groups: Record<string, GroupData>): Map<string, ClubRemainingUpside> {
+function collectRemainingUpside(
+  groups: Record<string, GroupData>,
+  knockoutStartedKeys: Set<string>,
+  withdrawnByGroup: Map<string, Set<string>>,
+): Map<string, ClubRemainingUpside> {
   const remainingByClub = new Map<string, ClubRemainingUpside>();
 
   function ensureClub(club: string): ClubRemainingUpside {
@@ -58,7 +94,9 @@ function collectRemainingUpside(groups: Record<string, GroupData>): Map<string, 
 
   for (const group of Object.values(groups)) {
     for (const match of group.matches) {
-      if (match.isPlayed || !isRealMatch(match)) continue;
+      if (!isActionableUnplayedMatch(match, group, knockoutStartedKeys, withdrawnByGroup)) {
+        continue;
+      }
 
       const upside = maxPointsForUnplayedMatch(group);
       for (const club of [match.homeTeam, match.awayTeam]) {
@@ -76,19 +114,39 @@ function collectRemainingUpside(groups: Record<string, GroupData>): Map<string, 
   return remainingByClub;
 }
 
-export function calculateSeasonProjection(season: SeasonData): SeasonProjection {
-  const challenge =
-    season.challenge.length > 0 ? season.challenge : calculateVereinsChallenge(season.groups);
-  const remainingByClub = collectRemainingUpside(season.groups);
+function countActionableUnplayedMatches(
+  groups: Record<string, GroupData>,
+  knockoutStartedKeys: Set<string>,
+  withdrawnByGroup: Map<string, Set<string>>,
+): number {
+  let total = 0;
 
-  let totalUnplayedMatches = 0;
-  for (const group of Object.values(season.groups)) {
+  for (const group of Object.values(groups)) {
     for (const match of group.matches) {
-      if (!match.isPlayed && isRealMatch(match)) {
-        totalUnplayedMatches += 1;
+      if (isActionableUnplayedMatch(match, group, knockoutStartedKeys, withdrawnByGroup)) {
+        total += 1;
       }
     }
   }
+
+  return total;
+}
+
+export function calculateSeasonProjection(season: SeasonData): SeasonProjection {
+  const challenge =
+    season.challenge.length > 0 ? season.challenge : calculateVereinsChallenge(season.groups);
+  const knockoutStartedKeys = buildKnockoutStartedKeys(season.groups);
+  const withdrawnByGroup = buildWithdrawnTeamKeysByGroup(season.groups);
+  const remainingByClub = collectRemainingUpside(
+    season.groups,
+    knockoutStartedKeys,
+    withdrawnByGroup,
+  );
+  const totalUnplayedMatches = countActionableUnplayedMatches(
+    season.groups,
+    knockoutStartedKeys,
+    withdrawnByGroup,
+  );
 
   const leaderCurrentPoints = challenge[0]?.totalPoints ?? 0;
 

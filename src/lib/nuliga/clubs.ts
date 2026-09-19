@@ -9,6 +9,7 @@ import type {
 import { readSeasonCache } from "@/lib/cache";
 import { AVAILABLE_SEASONS } from "@/lib/nuliga/constants";
 import { calculateVereinsChallenge } from "@/lib/nuliga/challenge";
+import { normalizeCompetitionKey } from "@/lib/nuliga/competition";
 import { getClubProjection } from "@/lib/nuliga/projection";
 import { getClubTitlesInSeason, type ClubTitle } from "@/lib/nuliga/titles";
 
@@ -31,7 +32,7 @@ export interface TeamPathMatch extends MatchRow {
   phase: "Gruppenphase" | "K.O.-Phase";
   groupId: string;
   groupTitle: string;
-  result: "Sieg" | "Niederlage" | "Unentschieden" | "Offen";
+  result: "Sieg" | "Niederlage" | "Unentschieden" | "Offen" | "Zurückgezogen";
   isHome: boolean;
   opponent: string;
 }
@@ -96,6 +97,7 @@ function classifyMatchResult(
   teamId: string,
   teamName: string,
 ): TeamPathMatch["result"] {
+  if (match.note === "Zurückgezogen") return "Zurückgezogen";
   if (!match.isPlayed) return "Offen";
 
   const [homeScore, awayScore] = parseScore(match.matchPoints) ?? [];
@@ -108,18 +110,6 @@ function classifyMatchResult(
     match.homeTeam === teamName;
   const teamWon = (isHome && homeScore > awayScore) || (!isHome && awayScore > homeScore);
   return teamWon ? "Sieg" : "Niederlage";
-}
-
-function normalizeCompetitionKey(title: string): string {
-  return title
-    .replace(/^HTV-Pokal \d+\s*/i, "")
-    .replace(/\s*Gr\.\s*\d+\s*$/i, "")
-    .replace(/^K\.O\.-Phase:\s*/i, "")
-    .replace(/\s*-?\s*K\.O\.-Phase\s*$/i, "")
-    .replace(/\s*-?\s*HTV-Pokal Nebenrunde\s*$/i, "")
-    .replace(/\s*-?\s*HTV-Pokal Hauptfeld\s*$/i, "")
-    .trim()
-    .toLowerCase();
 }
 
 function analyzeTeamMatches(

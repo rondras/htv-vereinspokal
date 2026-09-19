@@ -28,6 +28,10 @@ function resultBadge(result: TeamPath["groupMatches"][number]["result"]) {
       return (
         <Badge className="border-zinc-700 bg-zinc-900 text-zinc-500">Offen</Badge>
       );
+    case "Zurückgezogen":
+      return (
+        <Badge className="border-zinc-600 bg-zinc-900 text-zinc-400">Zurückgezogen</Badge>
+      );
     default: {
       const _exhaustive: never = result;
       return _exhaustive;
@@ -75,12 +79,14 @@ function MatchTable({
               </td>
               <td className="py-3 pr-3 text-zinc-400">{match.isHome ? "Heim" : "Auswärts"}</td>
               <td className="py-3 pr-3">
-                {match.isPlayed ? (
+                {match.note === "Zurückgezogen" ? (
+                  <span className="text-zinc-400">Zurückgezogen</span>
+                ) : match.isPlayed ? (
                   <span className="font-medium text-emerald-300">{match.matchPoints}</span>
                 ) : (
                   <span className="text-zinc-600">—</span>
                 )}
-                {match.note ? (
+                {match.note && match.note !== "Zurückgezogen" ? (
                   <span className="ml-2 text-xs text-amber-400">{match.note}</span>
                 ) : null}
               </td>

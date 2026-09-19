@@ -30,6 +30,8 @@ export interface StandingRow {
   matchPoints: string;
   sets: string;
   games: string;
+  /** Set when nuLiga marks a team as withdrawn or suspended from the group. */
+  withdrawnAt?: string;
 }
 
 export interface MatchRow {
