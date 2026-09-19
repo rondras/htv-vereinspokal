@@ -1,9 +1,11 @@
 import { ChallengeLeaderboard } from "@/components/challenge-leaderboard";
+import { ChallengeProjectionBanner } from "@/components/challenge-projection-banner";
 import { HomeSeasonHeader } from "@/components/home-season-header";
 import { LeagueGrid } from "@/components/league-grid";
 import { SeasonPageFrame } from "@/components/season-page-frame";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEFAULT_SEASON_YEAR } from "@/lib/nuliga/constants";
+import { calculateSeasonProjection } from "@/lib/nuliga/projection";
 import { getSeasonData } from "@/lib/nuliga/sync";
 import { formatDate, timeAgo } from "@/lib/utils";
 
@@ -15,10 +17,12 @@ interface HomePageProps {
 
 async function DashboardContent({ year }: { year: number }) {
   const season = await getSeasonData(year);
+  const projection = calculateSeasonProjection(season);
   const isStale = new Date(season.cacheExpiresAt).getTime() <= Date.now();
 
   return (
     <>
+      <ChallengeProjectionBanner projection={projection} year={year} />
       <Card className="border-emerald-500/20 bg-emerald-500/5">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Datenstand</CardTitle>
@@ -34,7 +38,13 @@ async function DashboardContent({ year }: { year: number }) {
         </CardContent>
       </Card>
 
-      <ChallengeLeaderboard entries={season.challenge} year={year} limit={15} />
+      <ChallengeLeaderboard
+        entries={season.challenge}
+        projections={projection.clubs}
+        year={year}
+        seasonInProgress={projection.seasonInProgress}
+        limit={15}
+      />
       <LeagueGrid competitions={season.competitions} year={year} />
     </>
   );

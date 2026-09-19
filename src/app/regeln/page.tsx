@@ -111,6 +111,17 @@ export default function RegelnPage() {
             Diese App berechnet die Vereins-Challenge automatisch aus nuLiga-Ergebnissen. Die
             offizielle Wertung erfolgt durch den HTV.
           </p>
+          <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 p-4 text-sm text-zinc-300">
+            <p className="font-medium text-sky-200">Potenzial während der laufenden Saison</p>
+            <p className="mt-2 text-zinc-400">
+              Für jede noch ausstehende Partie eines Vereins rechnen wir das bestmögliche Ergebnis
+              mit: +3 Punkte in der Gruppenphase (Sieg + 3:0-Bonus) bzw. +5 in der K.O.-Runde (Sieg
+              + 3:0-Bonus). Daraus entstehen Spalten <span className="text-zinc-300">Max</span>,{" "}
+              <span className="text-zinc-300">Offen</span> und{" "}
+              <span className="text-zinc-300">Best</span> — der Rang, den ein Verein bei Siegen in
+              allen verbleibenden Spielen erreichen könnte.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
