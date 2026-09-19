@@ -1,23 +1,42 @@
 import Link from "next/link";
-import type { ClubProfile } from "@/lib/nuliga/clubs";
+import type { ClubPageData } from "@/lib/nuliga/clubs";
 import { clubToSlug } from "@/lib/slug";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ClubDetailProps {
-  profile: ClubProfile;
+  data: ClubPageData;
   year: number;
-  rank?: number;
 }
 
-export function ClubDetail({ profile, year, rank }: ClubDetailProps) {
+function tierBadgeClass(tier: string): string {
+  switch (tier) {
+    case "Champions":
+      return "border-amber-500/40 bg-amber-500/10 text-amber-200";
+    case "Pros":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+    case "Talents":
+      return "border-sky-500/30 bg-sky-500/10 text-sky-300";
+    default:
+      return "border-zinc-700 bg-zinc-900 text-zinc-300";
+  }
+}
+
+export function ClubDetail({ data, year }: ClubDetailProps) {
+  const { profile, rank, titles, challengeHistory } = data;
   const clubSlug = clubToSlug(profile.club);
+  const historyWithParticipation = challengeHistory.filter((entry) => entry.participated);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        {rank !== undefined ? (
+        {rank > 0 ? (
           <Badge className="border-zinc-700 bg-zinc-900 text-zinc-300">Rang {rank}</Badge>
+        ) : null}
+        {titles.length > 0 ? (
+          <Badge className="border-amber-500/40 bg-amber-500/10 text-amber-200">
+            {titles.length} {titles.length === 1 ? "Titel" : "Titel"} {year}
+          </Badge>
         ) : null}
         <Link href={`/?season=${year}`} className="text-sm text-zinc-500 hover:text-zinc-300">
           ← Vereins-Challenge
@@ -55,6 +74,111 @@ export function ClubDetail({ profile, year, rank }: ClubDetailProps) {
               <p className="mt-1 text-lg font-medium text-zinc-200">{profile.challenge.breakdown.walkoverMalus}</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className={titles.length > 0 ? "border-amber-500/20 bg-amber-500/5" : undefined}>
+        <CardHeader>
+          <CardTitle>Titel {year}</CardTitle>
+          <CardDescription>
+            HTV-Pokal-Siege in der K.O.-Phase — ein Titel pro gewonnener Spielklasse.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {titles.length === 0 ? (
+            <p className="text-sm text-zinc-500">In dieser Saison noch kein Pokaltitel gewonnen.</p>
+          ) : (
+            <ul className="space-y-3">
+              {titles.map((title) => (
+                <li
+                  key={title.groupId}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/20 bg-zinc-950/40 px-4 py-3"
+                >
+                  <div>
+                    <p className="font-medium text-zinc-100">{title.label}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500">{title.groupTitle}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className={tierBadgeClass(title.tier)}>{title.tier}</Badge>
+                    <Link
+                      href={`/liga/${year}/${title.groupId}`}
+                      className="text-sm text-emerald-400 hover:underline"
+                    >
+                      K.O.-Phase →
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Vereins-Challenge · Historie</CardTitle>
+          <CardDescription>
+            Platzierung und Punkte über alle verfügbaren Saisons ({historyWithParticipation.length} Teilnahmen).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <table className="w-full min-w-[520px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-zinc-800 text-zinc-500">
+                <th className="pb-3 pr-4 font-medium">Saison</th>
+                <th className="pb-3 pr-4 font-medium">Rang</th>
+                <th className="pb-3 pr-4 font-medium">Punkte</th>
+                <th className="pb-3 font-medium">Teams</th>
+              </tr>
+            </thead>
+            <tbody>
+              {challengeHistory.map((entry) => (
+                <tr
+                  key={entry.year}
+                  className={`border-b border-zinc-900/80 last:border-0 ${
+                    entry.year === year ? "bg-emerald-500/5" : ""
+                  }`}
+                >
+                  <td className="py-3 pr-4">
+                    {entry.participated ? (
+                      <Link
+                        href={`/verein/${entry.year}/${clubSlug}`}
+                        className={`font-medium transition-colors duration-150 ease-out hover:text-emerald-400 ${
+                          entry.year === year ? "text-emerald-300" : "text-zinc-200"
+                        }`}
+                      >
+                        HTV-Pokal {entry.year}
+                        {entry.year === year ? " · aktuell" : ""}
+                      </Link>
+                    ) : (
+                      <span className="text-zinc-600">HTV-Pokal {entry.year}</span>
+                    )}
+                  </td>
+                  <td className="py-3 pr-4 text-zinc-400">
+                    {entry.participated ? (
+                      <Badge
+                        className={
+                          entry.rank <= 3
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                            : "border-zinc-700 bg-zinc-900 text-zinc-400"
+                        }
+                      >
+                        #{entry.rank}
+                      </Badge>
+                    ) : (
+                      <span className="text-zinc-600">—</span>
+                    )}
+                  </td>
+                  <td className="py-3 pr-4 text-zinc-300">
+                    {entry.participated ? entry.totalPoints : "—"}
+                  </td>
+                  <td className="py-3 text-zinc-400">
+                    {entry.participated ? entry.registeredTeams : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
 
