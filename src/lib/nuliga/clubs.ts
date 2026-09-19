@@ -5,7 +5,9 @@ import type {
   SeasonData,
   StandingRow,
 } from "@/lib/types";
+import { AVAILABLE_SEASONS } from "@/lib/nuliga/constants";
 import { calculateVereinsChallenge } from "@/lib/nuliga/challenge";
+import { getClubTitlesInSeason, type ClubTitle } from "@/lib/nuliga/titles";
 
 export interface TeamRegistration {
   groupId: string;
@@ -53,6 +55,21 @@ export interface ClubProfile {
   club: string;
   challenge: ClubChallengeEntry;
   teams: TeamRegistration[];
+}
+
+export interface ClubChallengeHistoryEntry {
+  year: number;
+  rank: number;
+  totalPoints: number;
+  registeredTeams: number;
+  participated: boolean;
+}
+
+export interface ClubPageData {
+  profile: ClubProfile;
+  rank: number;
+  titles: ClubTitle[];
+  challengeHistory: ClubChallengeHistoryEntry[];
 }
 
 function parseScore(score: string): [number, number] | null {
@@ -225,6 +242,67 @@ export function buildClubProfiles(season: SeasonData): ClubProfile[] {
 
 export function getClubProfile(season: SeasonData, club: string): ClubProfile | null {
   return buildClubProfiles(season).find((profile) => profile.club === club) ?? null;
+}
+
+export function buildClubChallengeHistoryEntry(
+  year: number,
+  profiles: ClubProfile[],
+  club: string,
+): ClubChallengeHistoryEntry {
+  const index = profiles.findIndex((profile) => profile.club === club);
+  if (index === -1) {
+    return {
+      year,
+      rank: 0,
+      totalPoints: 0,
+      registeredTeams: 0,
+      participated: false,
+    };
+  }
+
+  const profile = profiles[index]!;
+  return {
+    year,
+    rank: index + 1,
+    totalPoints: profile.challenge.totalPoints,
+    registeredTeams: profile.challenge.breakdown.registeredTeams,
+    participated: true,
+  };
+}
+
+export function buildClubPageData(
+  season: SeasonData,
+  club: string,
+  challengeHistory: ClubChallengeHistoryEntry[],
+): ClubPageData | null {
+  const profiles = buildClubProfiles(season);
+  const profile = profiles.find((entry) => entry.club === club);
+
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    profile,
+    rank: profiles.findIndex((entry) => entry.club === club) + 1,
+    titles: getClubTitlesInSeason(season, club),
+    challengeHistory,
+  };
+}
+
+export async function loadClubChallengeHistory(
+  club: string,
+  loadSeason: (year: number) => Promise<SeasonData>,
+): Promise<ClubChallengeHistoryEntry[]> {
+  const entries = await Promise.all(
+    AVAILABLE_SEASONS.map(async (year) => {
+      const season = await loadSeason(year);
+      const profiles = buildClubProfiles(season);
+      return buildClubChallengeHistoryEntry(year, profiles, club);
+    }),
+  );
+
+  return entries.sort((a, b) => b.year - a.year);
 }
 
 function toPathMatch(
