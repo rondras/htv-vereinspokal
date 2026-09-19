@@ -73,6 +73,28 @@ export interface ClubChallengeEntry {
   teams: string[];
 }
 
+export interface ClubChallengeProjection {
+  club: string;
+  currentPoints: number;
+  breakdown: ChallengeBreakdown;
+  remainingPoints: number;
+  maxPossiblePoints: number;
+  remainingGroupMatches: number;
+  remainingKnockoutMatches: number;
+  currentRank: number;
+  bestCaseRank: number;
+  canStillWinChallenge: boolean;
+  gapToLeader: number;
+}
+
+export interface SeasonProjection {
+  clubs: ClubChallengeProjection[];
+  totalUnplayedMatches: number;
+  seasonInProgress: boolean;
+  leaderCurrentPoints: number;
+  topMaxPossiblePoints: number;
+}
+
 export interface SeasonData {
   year: number;
   championship: string;
