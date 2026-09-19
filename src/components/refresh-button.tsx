@@ -31,7 +31,10 @@ export function RefreshButton({ year, onRefreshed }: RefreshButtonProps) {
 
       setMessage(`${payload.groups ?? 0} Gruppen aktualisiert`);
       onRefreshed?.();
-      window.location.reload();
+
+      const url = new URL(window.location.href);
+      url.searchParams.set("refresh", "1");
+      window.location.href = url.toString();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Fehler");
     } finally {
