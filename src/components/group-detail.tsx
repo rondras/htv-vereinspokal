@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClubLink } from "@/components/club-link";
 import type { GroupData } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +47,9 @@ export function GroupDetail({ group, year }: GroupDetailProps) {
                 {group.standings.map((row) => (
                   <tr key={row.team} className="border-b border-zinc-900/80 last:border-0">
                     <td className="py-3 pr-3 text-zinc-500">{row.rank}</td>
-                    <td className="py-3 pr-3 font-medium text-zinc-100">{row.team}</td>
+                    <td className="py-3 pr-3">
+                      <ClubLink club={row.team} year={year} />
+                    </td>
                     <td className="py-3 pr-3 text-zinc-400">{row.played}</td>
                     <td className="py-3 pr-3 text-zinc-400">{row.wins}</td>
                     <td className="py-3 pr-3 text-zinc-400">{row.draws}</td>
@@ -87,8 +90,12 @@ export function GroupDetail({ group, year }: GroupDetailProps) {
                     <td className="py-3 pr-3 whitespace-nowrap text-zinc-400">
                       {match.day} {match.date}
                     </td>
-                    <td className="py-3 pr-3 text-zinc-100">{match.homeTeam}</td>
-                    <td className="py-3 pr-3 text-zinc-100">{match.awayTeam}</td>
+                    <td className="py-3 pr-3">
+                      <ClubLink club={match.homeTeam} year={year} />
+                    </td>
+                    <td className="py-3 pr-3">
+                      <ClubLink club={match.awayTeam} year={year} />
+                    </td>
                     <td className="py-3 pr-3">
                       {match.isPlayed ? (
                         <span className="font-medium text-emerald-300">{match.matchPoints}</span>

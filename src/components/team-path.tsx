@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClubLink } from "@/components/club-link";
 import type { TeamPath } from "@/lib/nuliga/clubs";
 import { clubToSlug } from "@/lib/slug";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +35,15 @@ function resultBadge(result: TeamPath["groupMatches"][number]["result"]) {
   }
 }
 
-function MatchTable({ matches, emptyMessage }: { matches: TeamPath["groupMatches"]; emptyMessage: string }) {
+function MatchTable({
+  matches,
+  emptyMessage,
+  year,
+}: {
+  matches: TeamPath["groupMatches"];
+  emptyMessage: string;
+  year: number;
+}) {
   if (matches.length === 0) {
     return <p className="text-sm text-zinc-500">{emptyMessage}</p>;
   }
@@ -61,7 +70,9 @@ function MatchTable({ matches, emptyMessage }: { matches: TeamPath["groupMatches
               <td className="py-3 pr-3 whitespace-nowrap text-zinc-400">
                 {match.day} {match.date}
               </td>
-              <td className="py-3 pr-3 font-medium text-zinc-100">{match.opponent}</td>
+              <td className="py-3 pr-3">
+                <ClubLink club={match.opponent} year={year} />
+              </td>
               <td className="py-3 pr-3 text-zinc-400">{match.isHome ? "Heim" : "Auswärts"}</td>
               <td className="py-3 pr-3">
                 {match.isPlayed ? (
@@ -154,7 +165,11 @@ export function TeamPathView({ path, year }: TeamPathViewProps) {
           <CardDescription>{path.groupMatches.length} Begegnungen</CardDescription>
         </CardHeader>
         <CardContent>
-          <MatchTable matches={path.groupMatches} emptyMessage="Noch keine Gruppenspiele für diese Mannschaft." />
+          <MatchTable
+            matches={path.groupMatches}
+            emptyMessage="Noch keine Gruppenspiele für diese Mannschaft."
+            year={year}
+          />
         </CardContent>
       </Card>
 
@@ -167,6 +182,7 @@ export function TeamPathView({ path, year }: TeamPathViewProps) {
           <MatchTable
             matches={path.knockoutMatches}
             emptyMessage="Noch nicht in der K.O.-Phase oder ausgeschieden vor K.O.-Start."
+            year={year}
           />
         </CardContent>
       </Card>
