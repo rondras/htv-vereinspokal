@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChallengeProjectionBar } from "@/components/challenge-projection-bar";
 import type { ClubPageData } from "@/lib/nuliga/clubs";
 import { clubToSlug } from "@/lib/slug";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,7 @@ function tierBadgeClass(tier: string): string {
 }
 
 export function ClubDetail({ data, year }: ClubDetailProps) {
-  const { profile, rank, titles, challengeHistory } = data;
+  const { profile, rank, titles, challengeHistory, projection } = data;
   const clubSlug = clubToSlug(profile.club);
   const historyWithParticipation = challengeHistory.filter((entry) => entry.participated);
 
@@ -37,6 +38,9 @@ export function ClubDetail({ data, year }: ClubDetailProps) {
           <Badge className="border-amber-500/40 bg-amber-500/10 text-amber-200">
             {titles.length} {titles.length === 1 ? "Titel" : "Titel"} {year}
           </Badge>
+        ) : null}
+        {projection?.canStillWinChallenge ? (
+          <Badge className="border-sky-500/30 bg-sky-500/10 text-sky-200">Noch im Rennen</Badge>
         ) : null}
         <Link href={`/?season=${year}`} className="text-sm text-zinc-500 hover:text-zinc-300">
           ← Vereins-Challenge
@@ -74,6 +78,39 @@ export function ClubDetail({ data, year }: ClubDetailProps) {
               <p className="mt-1 text-lg font-medium text-zinc-200">{profile.challenge.breakdown.walkoverMalus}</p>
             </div>
           </div>
+          {projection && projection.remainingPoints > 0 ? (
+            <div className="mt-6 rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-4">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-sky-200">Verbleibendes Potenzial</p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {projection.remainingGroupMatches} Gruppenspiele · {projection.remainingKnockoutMatches}{" "}
+                    K.O.-Spiele offen
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-end gap-6 text-sm">
+                  <div>
+                    <p className="text-zinc-500">Max. möglich</p>
+                    <p className="mt-1 text-xl font-semibold text-sky-300">{projection.maxPossiblePoints}</p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-500">Noch offen</p>
+                    <p className="mt-1 text-xl font-semibold text-sky-300">+{projection.remainingPoints}</p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-500">Best-Case-Rang</p>
+                    <p className="mt-1 text-xl font-semibold text-zinc-200">#{projection.bestCaseRank}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 max-w-xs">
+                <ChallengeProjectionBar
+                  current={projection.currentPoints}
+                  max={projection.maxPossiblePoints}
+                />
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
