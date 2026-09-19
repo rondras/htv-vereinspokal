@@ -1,5 +1,6 @@
 import type {
   ClubChallengeEntry,
+  ClubChallengeProjection,
   GroupData,
   MatchRow,
   SeasonData,
@@ -8,6 +9,7 @@ import type {
 import { readSeasonCache } from "@/lib/cache";
 import { AVAILABLE_SEASONS } from "@/lib/nuliga/constants";
 import { calculateVereinsChallenge } from "@/lib/nuliga/challenge";
+import { getClubProjection } from "@/lib/nuliga/projection";
 import { getClubTitlesInSeason, type ClubTitle } from "@/lib/nuliga/titles";
 
 export interface TeamRegistration {
@@ -71,6 +73,7 @@ export interface ClubPageData {
   rank: number;
   titles: ClubTitle[];
   challengeHistory: ClubChallengeHistoryEntry[];
+  projection: ClubChallengeProjection | null;
 }
 
 function parseScore(score: string): [number, number] | null {
@@ -291,6 +294,7 @@ export function buildClubPageData(
     rank: profiles.findIndex((entry) => entry.club === club) + 1,
     titles: getClubTitlesInSeason(season, club),
     challengeHistory,
+    projection: getClubProjection(season, club),
   };
 }
 
