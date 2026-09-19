@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { ClubLink } from "@/components/club-link";
 import type { ClubChallengeEntry } from "@/lib/types";
-import { clubToSlug } from "@/lib/slug";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -61,13 +61,8 @@ export function ChallengeLeaderboard({ entries, year, limit = 10 }: ChallengeLea
               {visible.map((entry, index) => (
                 <tr key={entry.club} className="border-b border-zinc-900/80 last:border-0">
                   <td className="py-3 pr-4 text-zinc-500">{index + 1}</td>
-                  <td className="py-3 pr-4 font-medium text-zinc-100">
-                    <Link
-                      href={`/verein/${year}/${clubToSlug(entry.club)}`}
-                      className="text-zinc-100 transition-colors duration-150 ease-out hover:text-emerald-400"
-                    >
-                      {entry.club}
-                    </Link>
+                  <td className="py-3 pr-4">
+                    <ClubLink club={entry.club} year={year} />
                   </td>
                   <td className="py-3 pr-4">
                     <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
