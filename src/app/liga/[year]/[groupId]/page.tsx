@@ -6,17 +6,19 @@ export const maxDuration = 60;
 
 interface LigaDetailPageProps {
   params: Promise<{ year: string; groupId: string }>;
+  searchParams: Promise<{ refresh?: string }>;
 }
 
-export default async function LigaDetailPage({ params }: LigaDetailPageProps) {
+export default async function LigaDetailPage({ params, searchParams }: LigaDetailPageProps) {
   const { year: yearParam, groupId } = await params;
+  const { refresh } = await searchParams;
   const year = Number.parseInt(yearParam, 10);
 
   if (!isValidSeasonYear(year)) {
     notFound();
   }
 
-  const season = await getSeasonData(year);
+  const season = await getSeasonData(year, refresh === "1");
   const group = season.groups[groupId];
 
   if (!group) {

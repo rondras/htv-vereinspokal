@@ -12,11 +12,11 @@ import { formatDate, timeAgo } from "@/lib/utils";
 export const maxDuration = 60;
 
 interface HomePageProps {
-  searchParams: Promise<{ season?: string }>;
+  searchParams: Promise<{ season?: string; refresh?: string }>;
 }
 
-async function DashboardContent({ year }: { year: number }) {
-  const season = await getSeasonData(year);
+async function DashboardContent({ year, forceRefresh }: { year: number; forceRefresh: boolean }) {
+  const season = await getSeasonData(year, forceRefresh);
   const projection = calculateSeasonProjection(season);
   const isStale = new Date(season.cacheExpiresAt).getTime() <= Date.now();
 
@@ -53,10 +53,11 @@ async function DashboardContent({ year }: { year: number }) {
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
   const year = Number.parseInt(params.season ?? String(DEFAULT_SEASON_YEAR), 10);
+  const forceRefresh = params.refresh === "1";
 
   return (
     <SeasonPageFrame year={year} header={<HomeSeasonHeader year={year} />}>
-      <DashboardContent year={year} />
+      <DashboardContent year={year} forceRefresh={forceRefresh} />
     </SeasonPageFrame>
   );
 }

@@ -8,10 +8,12 @@ export const maxDuration = 60;
 
 interface TeamPathPageProps {
   params: Promise<{ year: string; club: string; groupId: string; teamId: string }>;
+  searchParams: Promise<{ refresh?: string }>;
 }
 
-export default async function TeamPathPage({ params }: TeamPathPageProps) {
+export default async function TeamPathPage({ params, searchParams }: TeamPathPageProps) {
   const { year: yearParam, club: clubSlug, groupId, teamId: teamIdParam } = await params;
+  const { refresh } = await searchParams;
   const year = Number.parseInt(yearParam, 10);
   const teamId = decodeURIComponent(teamIdParam);
 
@@ -20,7 +22,7 @@ export default async function TeamPathPage({ params }: TeamPathPageProps) {
   }
 
   const club = slugToClub(clubSlug);
-  const season = await getSeasonData(year);
+  const season = await getSeasonData(year, refresh === "1");
   const path = buildTeamPath(season, groupId, teamId);
 
   if (!path || path.club !== club) {

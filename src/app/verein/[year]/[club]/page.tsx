@@ -8,10 +8,12 @@ export const maxDuration = 60;
 
 interface VereinPageProps {
   params: Promise<{ year: string; club: string }>;
+  searchParams: Promise<{ refresh?: string }>;
 }
 
-export default async function VereinPage({ params }: VereinPageProps) {
+export default async function VereinPage({ params, searchParams }: VereinPageProps) {
   const { year: yearParam, club: clubSlug } = await params;
+  const { refresh } = await searchParams;
   const year = Number.parseInt(yearParam, 10);
 
   if (!isValidSeasonYear(year)) {
@@ -20,7 +22,7 @@ export default async function VereinPage({ params }: VereinPageProps) {
 
   const club = slugToClub(clubSlug);
   const [season, challengeHistory] = await Promise.all([
-    getSeasonData(year),
+    getSeasonData(year, refresh === "1"),
     loadClubChallengeHistory(club),
   ]);
   const pageData = buildClubPageData(season, club, challengeHistory);
