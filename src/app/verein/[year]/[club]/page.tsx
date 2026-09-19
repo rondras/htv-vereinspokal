@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ClubDetail } from "@/components/club-detail";
-import { buildClubProfiles } from "@/lib/nuliga/clubs";
+import { buildClubPageData, loadClubChallengeHistory } from "@/lib/nuliga/clubs";
 import { getSeasonData, isValidSeasonYear } from "@/lib/nuliga/sync";
 import { slugToClub } from "@/lib/slug";
 
@@ -19,15 +19,15 @@ export default async function VereinPage({ params }: VereinPageProps) {
   }
 
   const club = slugToClub(clubSlug);
-  const season = await getSeasonData(year);
-  const profiles = buildClubProfiles(season);
-  const profile = profiles.find((entry) => entry.club === club);
+  const [season, challengeHistory] = await Promise.all([
+    getSeasonData(year),
+    loadClubChallengeHistory(club, getSeasonData),
+  ]);
+  const pageData = buildClubPageData(season, club, challengeHistory);
 
-  if (!profile) {
+  if (!pageData) {
     notFound();
   }
 
-  const rank = profiles.findIndex((entry) => entry.club === club) + 1;
-
-  return <ClubDetail profile={profile} year={year} rank={rank} />;
+  return <ClubDetail data={pageData} year={year} />;
 }
