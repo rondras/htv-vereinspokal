@@ -131,6 +131,8 @@ function parseIntSafe(value: string): number {
 }
 
 interface MatchColumnLayout {
+  day: number;
+  date: number;
   home: number;
   away: number;
   matchPoints: number;
@@ -139,19 +141,50 @@ interface MatchColumnLayout {
   report: number;
 }
 
-function resolveMatchColumnLayout(headers: string[], cellCount: number): MatchColumnLayout {
-  const isKnockoutSchedule = headers.includes("nr.") || cellCount >= 11;
+function expandHeaderLabels(
+  headers: Array<{ label: string; colspan: number }>,
+): string[] {
+  const labels: string[] = [];
 
-  if (isKnockoutSchedule) {
-    // 2024+ includes Spielort between Nr. and teams; 2023 Nebenrunde omits it.
-    if (headers.includes("spielort")) {
-      return { home: 5, away: 6, matchPoints: 7, sets: 8, games: 9, report: 10 };
+  for (const header of headers) {
+    const span = header.colspan > 0 ? header.colspan : 1;
+    for (let index = 0; index < span; index += 1) {
+      labels.push(header.label);
     }
-
-    return { home: 4, away: 5, matchPoints: 6, sets: 7, games: 8, report: 9 };
   }
 
-  return { home: 3, away: 4, matchPoints: 5, sets: 6, games: 7, report: 8 };
+  return labels;
+}
+
+/**
+ * nuLiga prints "Datum" as colspan=3. Some group-phase tables also insert
+ * Spielort without the knockout "Nr." column, which shifts every later cell.
+ * Column indexes come from the header, not from a guessed cell count.
+ */
+function resolveMatchColumnLayout(columnLabels: string[]): MatchColumnLayout | null {
+  const home = columnLabels.indexOf("heimmannschaft");
+  const away = columnLabels.indexOf("gastmannschaft");
+  const matchPoints = columnLabels.indexOf("matchpunkte");
+  const sets = columnLabels.indexOf("sätze");
+  const games = columnLabels.indexOf("spiele");
+  const report = columnLabels.indexOf("spielbericht");
+
+  if (home < 0 || away < 0 || matchPoints < 0 || sets < 0 || games < 0 || report < 0) {
+    return null;
+  }
+
+  const dateColumns = columnLabels.flatMap((label, index) => (label === "datum" ? [index] : []));
+
+  return {
+    day: dateColumns[0] ?? 0,
+    date: dateColumns[1] ?? dateColumns[0] ?? 1,
+    home,
+    away,
+    matchPoints,
+    sets,
+    games,
+    report,
+  };
 }
 
 function looksLikeTeamName(name: string): boolean {
@@ -237,12 +270,19 @@ export function parseGroupPage(html: string, year: number, groupId: string): Gro
   const matches: MatchRow[] = [];
 
   for (const table of tables) {
-    const headers = $(table)
-      .find("tr")
-      .first()
-      .find("th")
+    const headerNodes = $(table).find("tr").first().find("th");
+    const headers = headerNodes
       .map((_, th) => decodeEntities($(th).text()).toLowerCase())
       .get();
+    const headerCells: Array<{ label: string; colspan: number }> = [];
+    headerNodes.each((_, th) => {
+      const span = Number.parseInt($(th).attr("colspan") ?? "1", 10);
+      headerCells.push({
+        label: decodeEntities($(th).text()).toLowerCase(),
+        colspan: Number.isFinite(span) && span > 0 ? span : 1,
+      });
+    });
+    const columnLabels = expandHeaderLabels(headerCells);
 
     if (headers.includes("rang") && headers.includes("mannschaft")) {
       $(table)
@@ -272,31 +312,44 @@ export function parseGroupPage(html: string, year: number, groupId: string): Gro
         });
     }
 
-    if (headers.includes("heimmannschaft") && headers.includes("gastmannschaft")) {
+    const matchLayout = headers.includes("heimmannschaft")
+      ? resolveMatchColumnLayout(columnLabels)
+      : null;
+
+    if (matchLayout) {
+      let carriedDay = "";
+      let carriedDate = "";
+
       $(table)
         .find("tr")
         .slice(1)
         .each((_, row) => {
           const cells = $(row).find("td");
-          if (cells.length < 9) return;
+          if (cells.length <= matchLayout.report) return;
 
-          const layout = resolveMatchColumnLayout(headers, cells.length);
-          if (cells.length <= layout.report) return;
-
-          const day = decodeEntities($(cells[0]).text());
-          const date = decodeEntities($(cells[1]).text());
-          const home = parseTeamCell($, cells[layout.home]!);
-          const away = parseTeamCell($, cells[layout.away]!);
+          const home = parseTeamCell($, cells[matchLayout.home]!);
+          const away = parseTeamCell($, cells[matchLayout.away]!);
           const homeIsBye = isByeTeam(home.name);
           const awayIsBye = isByeTeam(away.name);
           if (!looksLikeTeamName(home.name) && !homeIsBye) return;
           if (!looksLikeTeamName(away.name) && !awayIsBye) return;
           if (homeIsBye && awayIsBye) return;
 
-          const matchPoints = decodeEntities($(cells[layout.matchPoints]).text());
-          const sets = decodeEntities($(cells[layout.sets]).text());
-          const games = decodeEntities($(cells[layout.games]).text());
-          const reportCell = cells[layout.report]!;
+          // Later matches on the same day leave the date cells blank (tabelle-rowspan).
+          let day = decodeEntities($(cells[matchLayout.day]).text());
+          let date = decodeEntities($(cells[matchLayout.date]).text());
+          if (!date) {
+            date = carriedDate;
+            if (!day) day = carriedDay;
+          } else {
+            carriedDay = day;
+            carriedDate = date;
+          }
+
+          const matchPoints = decodeEntities($(cells[matchLayout.matchPoints]).text());
+          const sets = decodeEntities($(cells[matchLayout.sets]).text());
+          const games = decodeEntities($(cells[matchLayout.games]).text());
+          const reportCell = cells[matchLayout.report]!;
           const reportLink = $(reportCell).find("a").attr("href");
           const reportText = decodeEntities($(reportCell).text());
           const rowText = decodeEntities($(row).text());
